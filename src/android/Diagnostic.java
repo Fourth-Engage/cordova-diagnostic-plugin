@@ -38,7 +38,6 @@ import org.json.JSONObject;
 
 import android.Manifest;
 import android.app.Activity;
-import android.bluetooth.BluetoothAdapter;
 import android.content.BroadcastReceiver;
 import android.content.IntentFilter;
 import android.location.Location;
@@ -81,30 +80,13 @@ public class Diagnostic extends CordovaPlugin{
     private static final Map<String, String> permissionsMap;
     static {
         Map<String, String> _permissionsMap = new HashMap <String, String>();
-        Diagnostic.addBiDirMapEntry(_permissionsMap, "READ_CALENDAR", Manifest.permission.READ_CALENDAR);
-        Diagnostic.addBiDirMapEntry(_permissionsMap, "WRITE_CALENDAR", Manifest.permission.WRITE_CALENDAR);
         Diagnostic.addBiDirMapEntry(_permissionsMap, "CAMERA", Manifest.permission.CAMERA);
-        Diagnostic.addBiDirMapEntry(_permissionsMap, "READ_CONTACTS", Manifest.permission.READ_CONTACTS);
-        Diagnostic.addBiDirMapEntry(_permissionsMap, "WRITE_CONTACTS", Manifest.permission.WRITE_CONTACTS);
-        Diagnostic.addBiDirMapEntry(_permissionsMap, "GET_ACCOUNTS", Manifest.permission.GET_ACCOUNTS);
         Diagnostic.addBiDirMapEntry(_permissionsMap, "ACCESS_FINE_LOCATION", Manifest.permission.ACCESS_FINE_LOCATION);
         Diagnostic.addBiDirMapEntry(_permissionsMap, "ACCESS_COARSE_LOCATION", Manifest.permission.ACCESS_COARSE_LOCATION);
         Diagnostic.addBiDirMapEntry(_permissionsMap, "RECORD_AUDIO", Manifest.permission.RECORD_AUDIO);
-        Diagnostic.addBiDirMapEntry(_permissionsMap, "READ_PHONE_STATE", Manifest.permission.READ_PHONE_STATE);
-        Diagnostic.addBiDirMapEntry(_permissionsMap, "CALL_PHONE", Manifest.permission.CALL_PHONE);
-        Diagnostic.addBiDirMapEntry(_permissionsMap, "ADD_VOICEMAIL", Manifest.permission.ADD_VOICEMAIL);
         Diagnostic.addBiDirMapEntry(_permissionsMap, "USE_SIP", Manifest.permission.USE_SIP);
-        Diagnostic.addBiDirMapEntry(_permissionsMap, "PROCESS_OUTGOING_CALLS", Manifest.permission.PROCESS_OUTGOING_CALLS);
-        Diagnostic.addBiDirMapEntry(_permissionsMap, "SEND_SMS", Manifest.permission.SEND_SMS);
-        Diagnostic.addBiDirMapEntry(_permissionsMap, "RECEIVE_SMS", Manifest.permission.RECEIVE_SMS);
-        Diagnostic.addBiDirMapEntry(_permissionsMap, "READ_SMS", Manifest.permission.READ_SMS);
-        Diagnostic.addBiDirMapEntry(_permissionsMap, "RECEIVE_WAP_PUSH", Manifest.permission.RECEIVE_WAP_PUSH);
-        Diagnostic.addBiDirMapEntry(_permissionsMap, "RECEIVE_MMS", Manifest.permission.RECEIVE_MMS);
         Diagnostic.addBiDirMapEntry(_permissionsMap, "WRITE_EXTERNAL_STORAGE", Manifest.permission.WRITE_EXTERNAL_STORAGE);
-        Diagnostic.addBiDirMapEntry(_permissionsMap, "READ_CALL_LOG", Manifest.permission.READ_CALL_LOG);
-        Diagnostic.addBiDirMapEntry(_permissionsMap, "WRITE_CALL_LOG", Manifest.permission.WRITE_CALL_LOG);
         Diagnostic.addBiDirMapEntry(_permissionsMap, "READ_EXTERNAL_STORAGE", Manifest.permission.READ_EXTERNAL_STORAGE);
-        Diagnostic.addBiDirMapEntry(_permissionsMap, "BODY_SENSORS", Manifest.permission.BODY_SENSORS);
         permissionsMap = Collections.unmodifiableMap(_permissionsMap);
     }
 
@@ -214,19 +196,6 @@ public class Diagnostic extends CordovaPlugin{
     }
 
     /**
-     * Called on destroying activity
-     */
-    public void onDestroy() {
-        try {
-            if (bluetoothListenerInitialized) {
-                this.cordova.getActivity().unregisterReceiver(mReceiver);
-            }
-        }catch(Exception e){
-            Log.w(TAG, "Unable to unregister Bluetooth receiver: " + e.getMessage());
-        }
-    }
-
-    /**
      * Executes the request and returns PluginResult.
      *
      * @param action            The action to execute.
@@ -246,9 +215,6 @@ public class Diagnostic extends CordovaPlugin{
                 callbackContext.success();
             } else if (action.equals("switchToMobileDataSettings")){
                 switchToMobileDataSettings();
-                callbackContext.success();
-            } else if (action.equals("switchToBluetoothSettings")){
-                switchToBluetoothSettings();
                 callbackContext.success();
             } else if (action.equals("switchToWifiSettings")){
                 switchToWifiSettings();
@@ -271,26 +237,8 @@ public class Diagnostic extends CordovaPlugin{
                 callbackContext.success(isWifiAvailable() ? 1 : 0);
             } else if(action.equals("isCameraPresent")) {
                 callbackContext.success(isCameraPresent() ? 1 : 0);
-            } else if(action.equals("isBluetoothAvailable")) {
-                callbackContext.success(isBluetoothAvailable() ? 1 : 0);
-            }else if(action.equals("isBluetoothEnabled")) {
-                callbackContext.success(isBluetoothEnabled() ? 1 : 0);
-            } else if(action.equals("hasBluetoothSupport")) {
-                callbackContext.success(hasBluetoothSupport() ? 1 : 0);
-            } else if(action.equals("hasBluetoothLESupport")) {
-                callbackContext.success(hasBluetoothLESupport() ? 1 : 0);
-            } else if(action.equals("hasBluetoothLEPeripheralSupport")) {
-                callbackContext.success(hasBluetoothLEPeripheralSupport() ? 1 : 0);
             } else if(action.equals("setWifiState")) {
                 setWifiState(args.getBoolean(0));
-                callbackContext.success();
-            } else if(action.equals("setBluetoothState")) {
-                setBluetoothState(args.getBoolean(0));
-                callbackContext.success();
-            } else if(action.equals("getBluetoothState")) {
-                callbackContext.success(getBluetoothState());
-            } else if(action.equals("initializeBluetoothListener")) {
-                initializeBluetoothListener();
                 callbackContext.success();
             } else if(action.equals("getPermissionAuthorizationStatus")) {
                 this.getPermissionAuthorizationStatus(args);
@@ -386,35 +334,6 @@ public class Diagnostic extends CordovaPlugin{
         return result;
     }
 
-    public boolean isBluetoothAvailable() {
-        boolean result = hasBluetoothSupport() && isBluetoothEnabled();
-        return result;
-    }
-
-    public boolean isBluetoothEnabled() {
-        BluetoothAdapter mBluetoothAdapter = BluetoothAdapter.getDefaultAdapter();
-        boolean result = mBluetoothAdapter != null && mBluetoothAdapter.isEnabled();
-        return result;
-    }
-
-    public boolean hasBluetoothSupport() {
-        PackageManager pm = this.cordova.getActivity().getPackageManager();
-        boolean result = pm.hasSystemFeature(PackageManager.FEATURE_BLUETOOTH);
-        return result;
-    }
-
-    public boolean hasBluetoothLESupport() {
-        PackageManager pm = this.cordova.getActivity().getPackageManager();
-        boolean result = pm.hasSystemFeature(PackageManager.FEATURE_BLUETOOTH_LE);
-        return result;
-    }
-
-    public boolean hasBluetoothLEPeripheralSupport() {
-        BluetoothAdapter mBluetoothAdapter = BluetoothAdapter.getDefaultAdapter();
-        boolean result = mBluetoothAdapter != null && mBluetoothAdapter.isMultipleAdvertisementSupported();
-        return result;
-    }
-
     public void switchToAppSettings() {
         Log.d(TAG, "Switch to App Settings");
         Intent appIntent = new Intent(Settings.ACTION_APPLICATION_DETAILS_SETTINGS);
@@ -435,12 +354,6 @@ public class Diagnostic extends CordovaPlugin{
         cordova.getActivity().startActivity(settingsIntent);
     }
 
-    public void switchToBluetoothSettings() {
-        Log.d(TAG, "Switch to Bluetooth Settings");
-        Intent settingsIntent = new Intent(Settings.ACTION_BLUETOOTH_SETTINGS);
-        cordova.getActivity().startActivity(settingsIntent);
-    }
-
     public void switchToWifiSettings() {
         Log.d(TAG, "Switch to Wifi Settings");
         Intent settingsIntent = new Intent(Settings.ACTION_WIFI_SETTINGS);
@@ -454,42 +367,6 @@ public class Diagnostic extends CordovaPlugin{
         } else if (!enable && wifiManager.isWifiEnabled()) {
             wifiManager.setWifiEnabled(false);
         }
-    }
-
-    public static boolean setBluetoothState(boolean enable) {
-        BluetoothAdapter bluetoothAdapter = BluetoothAdapter.getDefaultAdapter();
-        boolean isEnabled = bluetoothAdapter.isEnabled();
-        if (enable && !isEnabled) {
-            return bluetoothAdapter.enable();
-        }
-        else if(!enable && isEnabled) {
-            return bluetoothAdapter.disable();
-        }
-        return true;
-    }
-
-    public String getBluetoothState(){
-
-        String bluetoothState = BLUETOOTH_STATE_UNKNOWN;
-        if(hasBluetoothSupport()){
-            BluetoothAdapter mBluetoothAdapter = BluetoothAdapter.getDefaultAdapter();
-            int state = mBluetoothAdapter.getState();
-            switch(state){
-                case BluetoothAdapter.STATE_OFF:
-                    bluetoothState = BLUETOOTH_STATE_POWERED_OFF;
-                    break;
-                case BluetoothAdapter.STATE_ON:
-                    bluetoothState = BLUETOOTH_STATE_POWERED_ON;
-                    break;
-                case BluetoothAdapter.STATE_TURNING_OFF:
-                    bluetoothState = BLUETOOTH_STATE_POWERING_OFF;
-                    break;
-                case BluetoothAdapter.STATE_TURNING_ON:
-                    bluetoothState = BLUETOOTH_STATE_POWERING_ON;
-                    break;
-            }
-        }
-        return bluetoothState;
     }
 
     public void getPermissionsAuthorizationStatus(JSONArray args) throws Exception{
@@ -601,14 +478,6 @@ public class Diagnostic extends CordovaPlugin{
     private boolean isLocationProviderEnabled(String provider) {
         return locationManager.isProviderEnabled(provider);
     }
-
-    private void initializeBluetoothListener(){
-        if(!bluetoothListenerInitialized){
-            this.cordova.getActivity().registerReceiver(mReceiver, new IntentFilter(BluetoothAdapter.ACTION_STATE_CHANGED));
-            bluetoothListenerInitialized = true;
-        }
-    }
-
 
     private JSONObject _getPermissionsAuthorizationStatus(String[] permissions) throws Exception{
         JSONObject statuses = new JSONObject();
@@ -827,36 +696,6 @@ public class Diagnostic extends CordovaPlugin{
             handleError("Exception occurred onRequestPermissionsResult: ".concat(e.getMessage()), requestCode);
         }
     }
-
-    private final BroadcastReceiver mReceiver = new BroadcastReceiver() {
-        @Override
-        public void onReceive(Context context, Intent intent) {
-            final String action = intent.getAction();
-            String bluetoothState;
-
-            if (action.equals(BluetoothAdapter.ACTION_STATE_CHANGED)) {
-                final int state = intent.getIntExtra(BluetoothAdapter.EXTRA_STATE,
-                        BluetoothAdapter.ERROR);
-                switch (state) {
-                    case BluetoothAdapter.STATE_OFF:
-                        bluetoothState = BLUETOOTH_STATE_POWERED_OFF;
-                        break;
-                    case BluetoothAdapter.STATE_TURNING_OFF:
-                        bluetoothState = BLUETOOTH_STATE_POWERING_OFF;
-                        break;
-                    case BluetoothAdapter.STATE_ON:
-                        bluetoothState = BLUETOOTH_STATE_POWERED_ON;
-                        break;
-                    case BluetoothAdapter.STATE_TURNING_ON:
-                        bluetoothState = BLUETOOTH_STATE_POWERING_ON;
-                        break;
-                    default:
-                        bluetoothState = BLUETOOTH_STATE_UNKNOWN;
-                }
-                instance.executeGlobalJavascript("_onBluetoothStateChange(\""+bluetoothState+"\");");
-            }
-        }
-    };
 
     public static class LocationProviderChangedReceiver extends BroadcastReceiver{
 
